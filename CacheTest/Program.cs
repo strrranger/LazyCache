@@ -18,6 +18,7 @@ namespace CacheTest
                 var item = cache.AddOrGetExistingAsync("test-key", () =>
                 {
                     Console.Write(" bump! ");
+                    Thread.Sleep(1000);
                     return Task.FromResult(Interlocked.Increment(ref counter));
                 });
 

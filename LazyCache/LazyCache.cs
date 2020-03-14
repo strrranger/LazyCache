@@ -51,23 +51,17 @@ namespace LazyCache
             Lazy<TCachedItem> returnedLazyObject;
             using (locker.Lock(key))
             {
-                var lazyObject = new Lazy<TCachedItem>(valueFactory);
                 returnedLazyObject = _cache.GetOrCreate(key, entry =>
                 {
                     entry.AbsoluteExpirationRelativeToNow = expirationOffset;
                     entry.AddExpirationToken(new CancellationChangeToken(_resetCacheToken.Token));
-                    return lazyObject;
+                    return new Lazy<TCachedItem>(valueFactory);
                 });
             }
             
             try
             {
-                var result = returnedLazyObject.Value;
-                if(returnedLazyObject != _cache.GetOrCreate(key, entry => new Lazy<TCachedItem>(valueFactory)))
-                {
-                    return AddOrGetExisting(key, expirationOffset, valueFactory);
-                }
-                return result;
+                return returnedLazyObject.Value;
             }
             catch
             {
@@ -121,18 +115,7 @@ namespace LazyCache
             }
             try
             {
-                var result = await asyncLazyValue;
-
-                // The awaited Task has completed. Check that the task still is the same version
-                // that the cache returns (i.e. the awaited task has not been invalidated during the await).    
-                if (asyncLazyValue != _cache.Get(key))
-                {
-                    // The awaited value is no more the most recent one.
-                    // Get the most recent value with a recursive call.
-                    return await AddOrGetExistingAsync(key, expirationOffset, valueFactory);
-                }
-
-                return result;
+                return await asyncLazyValue;
             }
             catch (Exception)
             {
